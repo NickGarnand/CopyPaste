@@ -1,0 +1,150 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+
+public class Script
+{
+    public static void Main()
+    {
+        try
+        {
+            // Get the list file path from user
+            OpenFileDialog listDialog = new OpenFileDialog();
+            listDialog.Title = "Select List File";
+            listDialog.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*";
+            
+            if (listDialog.ShowDialog() != DialogResult.OK)
+            {
+                MessageBox.Show("No list file selected. Script cancelled.");
+                return;
+            }
+            
+            string listFilePath = listDialog.FileName;
+            
+            // Get the search document path from user
+            OpenFileDialog searchDialog = new OpenFileDialog();
+            searchDialog.Title = "Select Document to Search";
+            searchDialog.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*";
+            
+            if (searchDialog.ShowDialog() != DialogResult.OK)
+            {
+                MessageBox.Show("No search document selected. Script cancelled.");
+                return;
+            }
+            
+            string searchFilePath = searchDialog.FileName;
+            
+            // Get output file path from user
+            SaveFileDialog saveDialog = new SaveFileDialog();
+            saveDialog.Title = "Save Results To";
+            saveDialog.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*";
+            saveDialog.DefaultExt = "txt";
+            
+            if (saveDialog.ShowDialog() != DialogResult.OK)
+            {
+                MessageBox.Show("No output file selected. Script cancelled.");
+                return;
+            }
+            
+            string outputFilePath = saveDialog.FileName;
+            
+            // Read the list file
+            string[] searchItems = File.ReadAllLines(listFilePath, Encoding.UTF8);
+            
+            // Remove empty lines and trim whitespace
+            searchItems = searchItems
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Select(item => item.Trim())
+                .ToArray();
+            
+            if (searchItems.Length == 0)
+            {
+                MessageBox.Show("List file is empty or contains no valid search terms.");
+                return;
+            }
+            
+            // Read the search document
+            string[] searchLines = File.ReadAllLines(searchFilePath, Encoding.UTF8);
+            
+            // Find matching lines
+            List<string> matchingLines = new List<string>();
+            HashSet<string> addedLines = new HashSet<string>(); // To avoid duplicates
+            
+            foreach (string searchItem in searchItems)
+            {
+                foreach (string line in searchLines)
+                {
+                    // Case-insensitive search
+                    if (line.IndexOf(searchItem, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Add line if not already added (avoid duplicates)
+                        if (!addedLines.Contains(line))
+                        {
+                            matchingLines.Add($"[{searchItem}] {line}");
+                            addedLines.Add(line);
+                        }
+                    }
+                }
+            }
+            
+            // Write results to output file
+            if (matchingLines.Count > 0)
+            {
+                // Add header with summary
+                List<string> output = new List<string>();
+                output.Add($"Search Results - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                output.Add($"List File: {Path.GetFileName(listFilePath)}");
+                output.Add($"Search File: {Path.GetFileName(searchFilePath)}");
+                output.Add($"Total Matches Found: {matchingLines.Count}");
+                output.Add($"Search Terms Used: {searchItems.Length}");
+                output.Add(new string('=', 50));
+                output.Add("");
+                
+                // Add matching lines
+                output.AddRange(matchingLines);
+                
+                File.WriteAllLines(outputFilePath, output, Encoding.UTF8);
+                
+                MessageBox.Show($"Search completed successfully!\n\n" +
+                              $"Found {matchingLines.Count} matching lines.\n" +
+                              $"Results saved to: {outputFilePath}\n\n" +
+                              $"Would you like to open the results file?",
+                              "Search Complete",
+                              MessageBoxButtons.YesNo,
+                              MessageBoxIcon.Information);
+                
+                // Optionally open the results file in Notepad++
+                if (MessageBox.Show("Open results in Notepad++?", "Open Results", 
+                                  MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    System.Diagnostics.Process.Start("notepad++.exe", $"\"{outputFilePath}\"");
+                }
+            }
+            else
+            {
+                MessageBox.Show("No matches found for any of the search terms.");
+                
+                // Still create an empty results file with summary
+                List<string> output = new List<string>();
+                output.Add($"Search Results - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                output.Add($"List File: {Path.GetFileName(listFilePath)}");
+                output.Add($"Search File: {Path.GetFileName(searchFilePath)}");
+                output.Add($"Total Matches Found: 0");
+                output.Add($"Search Terms Used: {searchItems.Length}");
+                output.Add(new string('=', 50));
+                output.Add("");
+                output.Add("No matches found for any search terms.");
+                
+                File.WriteAllLines(outputFilePath, output, Encoding.UTF8);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"An error occurred: {ex.Message}", "Error", 
+                          MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+}
