@@ -1,10 +1,10 @@
-# Notepad++ Python Script for Search and Extract
+# Notepad++ Python 2.7 Script for Search and Extract
 # Save this as a .py file and run through Plugins > Python Script > Scripts
 
 import os
-from datetime import datetime
+import time
 
-def get_file_dialog(title, filter_str="Text files (*.txt)|*.txt|All files (*.*)|*.*"):
+def get_file_dialog(title):
     """Simple file dialog using notepad.prompt"""
     file_path = notepad.prompt(title + "\nEnter full file path:", "")
     return file_path.strip() if file_path else None
@@ -12,27 +12,27 @@ def get_file_dialog(title, filter_str="Text files (*.txt)|*.txt|All files (*.*)|
 def read_file_content(file_path):
     """Read file content with error handling"""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r') as f:
             return f.read()
     except Exception as e:
-        console.write("Error reading file {}: {}\n".format(file_path, str(e)))
+        console.write("Error reading file %s: %s\n" % (file_path, str(e)))
         return None
 
 def write_file_content(file_path, content):
     """Write content to file with error handling"""
     try:
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, 'w') as f:
             f.write(content)
         return True
     except Exception as e:
-        console.write("Error writing file {}: {}\n".format(file_path, str(e)))
+        console.write("Error writing file %s: %s\n" % (file_path, str(e)))
         return False
 
 def main():
     try:
         console.write("=== Search and Extract Tool ===\n")
         
-        # Method 1: Use file paths
+        # Get file paths
         list_file_path = get_file_dialog("List File Path (search terms, one per line)")
         if not list_file_path:
             console.write("No list file specified. Script cancelled.\n")
@@ -53,14 +53,18 @@ def main():
         if not list_content:
             return
         
-        # Process search terms
-        search_items = [item.strip() for item in list_content.split('\n') if item.strip()]
+        # Process search terms (Python 2.7 compatible)
+        search_items = []
+        for item in list_content.split('\n'):
+            item = item.strip()
+            if item:
+                search_items.append(item)
         
         if not search_items:
             console.write("List file is empty or contains no valid search terms.\n")
             return
         
-        console.write("Found {} search terms\n".format(len(search_items)))
+        console.write("Found %d search terms\n" % len(search_items))
         
         # Read the search document
         search_content = read_file_content(search_file_path)
@@ -68,7 +72,7 @@ def main():
             return
         
         search_lines = search_content.split('\n')
-        console.write("Searching through {} lines\n".format(len(search_lines)))
+        console.write("Searching through %d lines\n" % len(search_lines))
         
         # Find matching lines
         matching_lines = []
@@ -80,17 +84,17 @@ def main():
                 if search_item.lower() in line.lower():
                     # Add line if not already added (avoid duplicates)
                     if line not in added_lines:
-                        matching_lines.append("[{}] {}".format(search_item, line))
+                        matching_lines.append("[%s] %s" % (search_item, line))
                         added_lines.add(line)
         
         # Create output content
-        current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current_date = time.strftime("%Y-%m-%d %H:%M:%S")
         output_lines = [
-            "Search Results - {}".format(current_date),
-            "List File: {}".format(os.path.basename(list_file_path)),
-            "Search File: {}".format(os.path.basename(search_file_path)),
-            "Total Matches Found: {}".format(len(matching_lines)),
-            "Search Terms Used: {}".format(len(search_items)),
+            "Search Results - %s" % current_date,
+            "List File: %s" % os.path.basename(list_file_path),
+            "Search File: %s" % os.path.basename(search_file_path),
+            "Total Matches Found: %d" % len(matching_lines),
+            "Search Terms Used: %d" % len(search_items),
             "=" * 50,
             ""
         ]
@@ -104,8 +108,8 @@ def main():
         output_content = '\n'.join(output_lines)
         if write_file_content(output_file_path, output_content):
             console.write("Search completed successfully!\n")
-            console.write("Found {} matching lines.\n".format(len(matching_lines)))
-            console.write("Results saved to: {}\n".format(output_file_path))
+            console.write("Found %d matching lines.\n" % len(matching_lines))
+            console.write("Results saved to: %s\n" % output_file_path)
             
             # Ask if user wants to open the file
             open_file = notepad.prompt("Open results file in Notepad++? (y/n)", "y")
@@ -113,7 +117,7 @@ def main():
                 notepad.open(output_file_path)
         
     except Exception as e:
-        console.write("An error occurred: {}\n".format(str(e)))
+        console.write("An error occurred: %s\n" % str(e))
 
 def main_with_open_files():
     """Alternative method using files already open in Notepad++"""
@@ -131,7 +135,7 @@ def main_with_open_files():
         # Show available files
         console.write("Available open files:\n")
         for i in range(notepad.getNumberOpenFiles()):
-            console.write("{}. {}\n".format(i + 1, notepad.getFilename(i)))
+            console.write("%d. %s\n" % (i + 1, notepad.getFilename(i)))
         
         # Get user selections
         list_index = notepad.prompt("Enter number for LIST file:", "1")
@@ -161,18 +165,22 @@ def main_with_open_files():
         notepad.activateIndex(search_idx)
         search_content = editor.getText()
         
-        # Process search terms
-        search_items = [item.strip() for item in list_content.split('\n') if item.strip()]
+        # Process search terms (Python 2.7 compatible)
+        search_items = []
+        for item in list_content.split('\n'):
+            item = item.strip()
+            if item:
+                search_items.append(item)
         
         if not search_items:
             console.write("List file is empty or contains no valid search terms.\n")
             return
         
-        console.write("Found {} search terms\n".format(len(search_items)))
+        console.write("Found %d search terms\n" % len(search_items))
         
         # Process search lines
         search_lines = search_content.split('\n')
-        console.write("Searching through {} lines\n".format(len(search_lines)))
+        console.write("Searching through %d lines\n" % len(search_lines))
         
         # Find matching lines
         matching_lines = []
@@ -182,17 +190,17 @@ def main_with_open_files():
             for line in search_lines:
                 if search_item.lower() in line.lower():
                     if line not in added_lines:
-                        matching_lines.append("[{}] {}".format(search_item, line))
+                        matching_lines.append("[%s] %s" % (search_item, line))
                         added_lines.add(line)
         
         # Create new document with results
         notepad.new()
         
-        current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current_date = time.strftime("%Y-%m-%d %H:%M:%S")
         output_lines = [
-            "Search Results - {}".format(current_date),
-            "Total Matches Found: {}".format(len(matching_lines)),
-            "Search Terms Used: {}".format(len(search_items)),
+            "Search Results - %s" % current_date,
+            "Total Matches Found: %d" % len(matching_lines),
+            "Search Terms Used: %d" % len(search_items),
             "=" * 50,
             ""
         ]
@@ -206,10 +214,10 @@ def main_with_open_files():
         editor.setText('\n'.join(output_lines))
         
         console.write("Search completed! Results displayed in new document.\n")
-        console.write("Found {} matching lines.\n".format(len(matching_lines)))
+        console.write("Found %d matching lines.\n" % len(matching_lines))
         
     except Exception as e:
-        console.write("An error occurred: {}\n".format(str(e)))
+        console.write("An error occurred: %s\n" % str(e))
 
 # Choose which method to run
 # Comment/uncomment the method you want to use
