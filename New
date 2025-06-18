@@ -1,0 +1,221 @@
+# Notepad++ Python Script for Search and Extract
+# Save this as a .py file and run through Plugins > Python Script > Scripts
+
+import os
+from datetime import datetime
+
+def get_file_dialog(title, filter_str="Text files (*.txt)|*.txt|All files (*.*)|*.*"):
+    """Simple file dialog using notepad.prompt"""
+    file_path = notepad.prompt(title + "\nEnter full file path:", "")
+    return file_path.strip() if file_path else None
+
+def read_file_content(file_path):
+    """Read file content with error handling"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        console.write("Error reading file {}: {}\n".format(file_path, str(e)))
+        return None
+
+def write_file_content(file_path, content):
+    """Write content to file with error handling"""
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return True
+    except Exception as e:
+        console.write("Error writing file {}: {}\n".format(file_path, str(e)))
+        return False
+
+def main():
+    try:
+        console.write("=== Search and Extract Tool ===\n")
+        
+        # Method 1: Use file paths
+        list_file_path = get_file_dialog("List File Path (search terms, one per line)")
+        if not list_file_path:
+            console.write("No list file specified. Script cancelled.\n")
+            return
+        
+        search_file_path = get_file_dialog("Search Document Path")
+        if not search_file_path:
+            console.write("No search document specified. Script cancelled.\n")
+            return
+        
+        output_file_path = get_file_dialog("Output File Path (where to save results)")
+        if not output_file_path:
+            console.write("No output file specified. Script cancelled.\n")
+            return
+        
+        # Read the list file
+        list_content = read_file_content(list_file_path)
+        if not list_content:
+            return
+        
+        # Process search terms
+        search_items = [item.strip() for item in list_content.split('\n') if item.strip()]
+        
+        if not search_items:
+            console.write("List file is empty or contains no valid search terms.\n")
+            return
+        
+        console.write("Found {} search terms\n".format(len(search_items)))
+        
+        # Read the search document
+        search_content = read_file_content(search_file_path)
+        if not search_content:
+            return
+        
+        search_lines = search_content.split('\n')
+        console.write("Searching through {} lines\n".format(len(search_lines)))
+        
+        # Find matching lines
+        matching_lines = []
+        added_lines = set()  # To avoid duplicates
+        
+        for search_item in search_items:
+            for line in search_lines:
+                # Case-insensitive search
+                if search_item.lower() in line.lower():
+                    # Add line if not already added (avoid duplicates)
+                    if line not in added_lines:
+                        matching_lines.append("[{}] {}".format(search_item, line))
+                        added_lines.add(line)
+        
+        # Create output content
+        current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        output_lines = [
+            "Search Results - {}".format(current_date),
+            "List File: {}".format(os.path.basename(list_file_path)),
+            "Search File: {}".format(os.path.basename(search_file_path)),
+            "Total Matches Found: {}".format(len(matching_lines)),
+            "Search Terms Used: {}".format(len(search_items)),
+            "=" * 50,
+            ""
+        ]
+        
+        if matching_lines:
+            output_lines.extend(matching_lines)
+        else:
+            output_lines.append("No matches found for any search terms.")
+        
+        # Write results to output file
+        output_content = '\n'.join(output_lines)
+        if write_file_content(output_file_path, output_content):
+            console.write("Search completed successfully!\n")
+            console.write("Found {} matching lines.\n".format(len(matching_lines)))
+            console.write("Results saved to: {}\n".format(output_file_path))
+            
+            # Ask if user wants to open the file
+            open_file = notepad.prompt("Open results file in Notepad++? (y/n)", "y")
+            if open_file and open_file.lower() == 'y':
+                notepad.open(output_file_path)
+        
+    except Exception as e:
+        console.write("An error occurred: {}\n".format(str(e)))
+
+def main_with_open_files():
+    """Alternative method using files already open in Notepad++"""
+    try:
+        console.write("=== Search and Extract Tool (Open Files Method) ===\n")
+        console.write("This method uses files already open in Notepad++\n")
+        
+        # Check if we have enough open files
+        if notepad.getNumberOpenFiles() < 2:
+            console.write("Please open at least 2 files in Notepad++:\n")
+            console.write("1. List file (search terms, one per line)\n")
+            console.write("2. Document to search through\n")
+            return
+        
+        # Show available files
+        console.write("Available open files:\n")
+        for i in range(notepad.getNumberOpenFiles()):
+            console.write("{}. {}\n".format(i + 1, notepad.getFilename(i)))
+        
+        # Get user selections
+        list_index = notepad.prompt("Enter number for LIST file:", "1")
+        if not list_index:
+            return
+        
+        search_index = notepad.prompt("Enter number for SEARCH document:", "2")
+        if not search_index:
+            return
+        
+        try:
+            list_idx = int(list_index) - 1
+            search_idx = int(search_index) - 1
+        except ValueError:
+            console.write("Invalid selection. Please enter numbers.\n")
+            return
+        
+        if list_idx < 0 or list_idx >= notepad.getNumberOpenFiles() or \
+           search_idx < 0 or search_idx >= notepad.getNumberOpenFiles():
+            console.write("Invalid file selection.\n")
+            return
+        
+        # Get content from selected files
+        notepad.activateIndex(list_idx)
+        list_content = editor.getText()
+        
+        notepad.activateIndex(search_idx)
+        search_content = editor.getText()
+        
+        # Process search terms
+        search_items = [item.strip() for item in list_content.split('\n') if item.strip()]
+        
+        if not search_items:
+            console.write("List file is empty or contains no valid search terms.\n")
+            return
+        
+        console.write("Found {} search terms\n".format(len(search_items)))
+        
+        # Process search lines
+        search_lines = search_content.split('\n')
+        console.write("Searching through {} lines\n".format(len(search_lines)))
+        
+        # Find matching lines
+        matching_lines = []
+        added_lines = set()
+        
+        for search_item in search_items:
+            for line in search_lines:
+                if search_item.lower() in line.lower():
+                    if line not in added_lines:
+                        matching_lines.append("[{}] {}".format(search_item, line))
+                        added_lines.add(line)
+        
+        # Create new document with results
+        notepad.new()
+        
+        current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        output_lines = [
+            "Search Results - {}".format(current_date),
+            "Total Matches Found: {}".format(len(matching_lines)),
+            "Search Terms Used: {}".format(len(search_items)),
+            "=" * 50,
+            ""
+        ]
+        
+        if matching_lines:
+            output_lines.extend(matching_lines)
+        else:
+            output_lines.append("No matches found for any search terms.")
+        
+        # Set the text in the new document
+        editor.setText('\n'.join(output_lines))
+        
+        console.write("Search completed! Results displayed in new document.\n")
+        console.write("Found {} matching lines.\n".format(len(matching_lines)))
+        
+    except Exception as e:
+        console.write("An error occurred: {}\n".format(str(e)))
+
+# Choose which method to run
+# Comment/uncomment the method you want to use
+
+# Method 1: Use file paths (you'll need to type full paths)
+main()
+
+# Method 2: Use files already open in Notepad++ (easier)
+# main_with_open_files()
